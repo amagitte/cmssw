@@ -50,7 +50,9 @@ DynamicTruncation::DynamicTruncation(const edm::Event& event, const MuonServiceP
   getSegs = new ChamberSegmentUtility();
   thrManager = new ThrParameters(&theService.eventSetup());
   useDBforThr = thrManager->isValidThdDB();
+  useDBforParam = thrManager->isValidParamDB();
   if (useDBforThr) dytThresholds = thrManager->getInitialThresholds();
+  if (useDBforThr && useDBforParam ) paramMap = thrManager->GetParametersMap();
   doUpdateOfKFStates = true;
 }
 
@@ -393,6 +395,8 @@ void DynamicTruncation::preliminaryFit(map<int, vector<DetId> > compatibleIds, m
     TrajectoryStateOnSurface tmp = propagatorPF->propagate(prelFitState, theG->idToDet(id)->surface());
     if (tmp.isValid()) prelFitState = tmp; 
   }
+
+  muonPest   = prelFitState.globalMomentum().mag();
   muonPTest  = prelFitState.globalMomentum().perp();
   muonETAest = prelFitState.globalMomentum().eta();
 }
@@ -436,17 +440,51 @@ void DynamicTruncation::getThresholdFromDB(double& thr, DetId const& id) {
       break;
     }
   }
-  correctThrByPtAndEta(thr);
+  correctThrByPtAndEta(thr,id);
 }
 
 
 //===> correctThrByPtAndEta
-void DynamicTruncation::correctThrByPtAndEta(double& thr) {
+void DynamicTruncation::correctThrByPtAndEta(double& thr, DetId const& id) {
 
-  //////////////////////////////////////
-  // This section will be implemented //
-  //    after the release of APEs     //
-  //////////////////////////////////////
+  int station = stationfromDet(id);
+  double p = muonPest;
+  double eta = std::abs(muonETAest);
+  std::vector<double> p1, p2, p3, p4;
+
+  //Set the Parameters Function
+  if ( eta >= 0 && eta < 0.8){ 
+     p1 = paramMap.find(1)->second;
+     p2 = paramMap.find(4)->second;
+     p3 = paramMap.find(7)->second;
+     p4 = paramMap.find(10)->second;
+  } else if ( eta >= 0.8 && eta < 1.2 ){ 
+     p1 = paramMap.find(2)->second;
+     p2 = paramMap.find(5)->second;
+     p3 = paramMap.find(8)->second;
+     p4 = paramMap.find(11)->second;
+  } else if ( eta >= 1.2 && eta < 2.4 ){  
+     p1 = paramMap.find(3)->second; 
+     p2 = paramMap.find(6)->second;
+     p3 = paramMap.find(9)->second;
+     p4 = paramMap.find(12)->second;
+  }
+
+  //Find the Thrs 
+  if ( station == 1 ){
+     thr = thr*( 1 + p1[0]*p + p1[1]*std::pow( p, p1[2]) );
+  } else if ( station == 2 ){
+     thr = thr*( 1 + p2[0]*p + p2[1]*std::pow( p, p2[2]) ); 
+  } else if ( station == 3 ){
+     thr = thr*( 1 + p3[0]*p + p3[1]*std::pow( p, p3[2]) ); 
+  } else if ( station == 4 ){
+     thr = thr*( 1 + p4[0]*p + p4[1]*std::pow( p, p4[2]) ); 
+  }
+  
+  p1.clear();
+  p2.clear();
+  p3.clear();
+  p4.clear();
 
 }
 
