@@ -20,6 +20,30 @@ ThrParameters::ThrParameters(const EventSetup* eSetup)
     isValidThdDB_ = false;
   }
 
+  //Read Parameters for fitting function from DB
+  ESHandle<DYTParamsObject> dytParamsH;
+  try {eSetup->get<DYTParamsObjectRcd>().get(dytParamsH);
+    dytParams     = dytParamsH.product();
+    dytParameters = dytParams->getParamObjs();
+    function      = dytParams->formula();
+    isValidParamDB_ = true;
+ 
+    //Storing all the parameters
+    for ( unsigned int i = 0; i< dytParameters.size(); ++i ){
+      DYTParamObject LocalParamObj = dytParameters[i];
+      std::vector<double> localparam;
+
+      for(unsigned int k = 0; k < LocalParamObj.paramSize(); ++k ){
+         localparam.push_back( LocalParamObj.parameter(k) );
+      }
+
+      ParametersMap.insert( pair<uint32_t, std::vector<double> > (LocalParamObj.id(), localparam) );
+      localparam.clear();
+    }
+  } catch(...) {
+    isValidParamDB_ = false;
+  } 
+
   // Ape are always filled even they're null
   ESHandle<AlignmentErrors> dtAlignmentErrors;
   eSetup->get<DTAlignmentErrorRcd>().get( dtAlignmentErrors );
