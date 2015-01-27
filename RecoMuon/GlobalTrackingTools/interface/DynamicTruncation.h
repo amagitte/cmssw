@@ -87,7 +87,7 @@ class DynamicTruncation {
   void                 updateWithDThits(TrajectoryStateOnSurface&, DTRecSegment4D const &);
   void                 updateWithCSChits(TrajectoryStateOnSurface&, CSCSegment const &);
   void                 getThresholdFromDB(double&, DetId const&);
-  void                 correctThrByPtAndEta(double&);
+  void                 correctThrByPtAndEta(double&, DetId const& id);
   void                 getThresholdFromCFG(double&, DetId const&);
   void                 testDTstation(TrajectoryStateOnSurface&, std::vector<DTRecSegment4D> const &, double&, DTRecSegment4D&, TrajectoryStateOnSurface&);
   void                 testCSCstation(TrajectoryStateOnSurface&, std::vector<CSCSegment> const &, double&, CSCSegment&, TrajectoryStateOnSurface&);
@@ -117,12 +117,14 @@ class DynamicTruncation {
   TrajectoryStateOnSurface prelFitState;
   reco::DYTInfo dytInfo;
   std::map<DTChamberId, GlobalError> dtApeMap;
-  std::map<CSCDetId, GlobalError> cscApeMap; 
-  double muonPTest, muonETAest;
+  std::map<CSCDetId, GlobalError> cscApeMap;
+  std::map<uint32_t,std::vector<double> > paramMap; 
+  double muonPTest, muonETAest, muonPest;
   const DYTThrObject* dytThresholds;
   ChamberSegmentUtility* getSegs;
   ThrParameters* thrManager;
   bool useDBforThr;
+  bool useDBforParam;
   bool doUpdateOfKFStates;
 };
 
