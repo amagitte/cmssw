@@ -7,7 +7,7 @@
  *  state and the reconstructed segment in the muon chambers
  *
  *  Authors :
- *  D. Pagano & G. Bruno - UCL Louvain
+ *  D. Pagano & A.Magitteri & G. Bruno - UCL Louvain
  *
  **/
 
@@ -52,6 +52,22 @@ DynamicTruncation::DynamicTruncation(const edm::Event& event, const MuonServiceP
   useDBforThr = thrManager->isValidThdDB();
   if (useDBforThr) dytThresholds = thrManager->getInitialThresholds();
   doUpdateOfKFStates = true;
+  //Primo Fit
+  /*p0 = { -0.0500285,  -0.00200909};
+  p1 = {  0.0606436,    0.0250009};
+  p2 = {    0.97961,     0.737373};*/
+
+  //Fit Parameters for IDEAL - GT
+  /*p0 = { -0.0513409, -0.00278793};
+  p1 = {  0.0621878,   0.0220382};
+  p2 = {   0.979586,    0.781441};
+  thr3000 = { 16, 12};*/
+
+  //Fit Parameters for REALISTIC - GT
+  p0 = { -0.0315519, -0.0186341};
+  p1 = {   0.047419,  0.0253404};
+  p2 = {   0.956258,   0.967586};
+  thr3000 = {19,11};
 }
 
 DynamicTruncation::~DynamicTruncation() {
@@ -393,8 +409,11 @@ void DynamicTruncation::preliminaryFit(map<int, vector<DetId> > compatibleIds, m
     TrajectoryStateOnSurface tmp = propagatorPF->propagate(prelFitState, theG->idToDet(id)->surface());
     if (tmp.isValid()) prelFitState = tmp; 
   }
+
+  muonPest   = prelFitState.globalMomentum().mag();
   muonPTest  = prelFitState.globalMomentum().perp();
   muonETAest = prelFitState.globalMomentum().eta();
+
 }
 
 
@@ -436,18 +455,30 @@ void DynamicTruncation::getThresholdFromDB(double& thr, DetId const& id) {
       break;
     }
   }
-  correctThrByPtAndEta(thr);
+  correctThrByPtAndEta(thr,id);
 }
 
 
 //===> correctThrByPtAndEta
-void DynamicTruncation::correctThrByPtAndEta(double& thr) {
+void DynamicTruncation::correctThrByPtAndEta(double& thr, DetId const& id) {
+ 
+  double p = muonPest;
 
-  //////////////////////////////////////
-  // This section will be implemented //
-  //    after the release of APEs     //
-  //////////////////////////////////////
-
+  //Fitting functions
+  if( id.subdetId() == MuonSubdetId::DT ){
+    if( p < 3000 ){
+      thr = thr*( 1 + p0[0]*p + p1[0]*std::pow( p, p2[0]) );
+    } else { 
+      thr = thr3000[0]; 
+    }
+  } else if( id.subdetId() == MuonSubdetId::CSC ){
+    if( p < 3000 ){ 
+      thr = thr*( 1 + p0[1]*p + p1[1]*std::pow( p, p2[1]) );
+    } else { 
+      thr = thr3000[1]; 
+    }
+  }
+ 
 }
 
 
